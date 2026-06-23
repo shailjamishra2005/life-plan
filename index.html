@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Bloom Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Nunito:wght@400;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FFF8EF; --cream2:#FCEFE3;
+    --ink:#3B2B2E; --ink3:#9C8A85;
+    --teal:#2F8C82; --teal-d:#1F6A62;
+    --crimson:#D9534F; --berry:#A8336B;
+    --gold:#E0A93A; --orange:#E2772E;
+    --line:#EADFD2;
+    --e1:#E2772E; --e2:#E0A93A; --e3:#9C8A85; --e4:#2F8C82; --e5:#A8336B;
+    --m1:#6E8FAE; --m2:#8AA8C9; --m3:#9C8A85; --m4:#C98BB5; --m5:#7A4C8C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; background:var(--cream);
+    font-family:'Nunito Sans',sans-serif; color:var(--ink);
+    position:relative; overflow-x:hidden;
+  }
+  .bg-flowers{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;}
+  .bg-flowers span{
+    position:absolute; top:-40px; font-size:1.4rem; opacity:.35;
+    animation:fall linear infinite;
+  }
+  @keyframes fall{
+    0%{transform:translateY(-5vh) translateX(0) rotate(0deg);}
+    100%{transform:translateY(105vh) translateX(30px) rotate(360deg);}
+  }
+  @media (prefers-reduced-motion: reduce){ .bg-flowers span{animation:none; display:none;} }
+
+  .wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:22px 24px 60px;}
+
+  nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .spin{display:inline-block; animation:spin 7s linear infinite; font-size:1.6rem;}
+  @keyframes spin{from{transform:rotate(0)} to{transform:rotate(360deg)}}
+  .tabs{display:flex; gap:6px; background:var(--cream2); padding:5px; border-radius:14px;}
+  .tab-btn{
+    border:none; background:transparent; padding:8px 16px; border-radius:10px;
+    font-family:'Nunito',sans-serif; font-weight:700; font-size:.85rem; color:var(--ink3);
+    cursor:pointer; transition:all .15s;
+  }
+  .tab-btn.active{background:var(--teal); color:#fff;}
+
+  .datebar{display:flex; align-items:center; gap:10px; margin-bottom:20px;}
+  .datebar button{
+    border:2px solid var(--line); background:#fff; border-radius:10px; width:34px; height:34px;
+    cursor:pointer; font-size:1rem; color:var(--teal-d); font-weight:700;
+  }
+  .datebar h2{font-family:'Cormorant Garamond',serif; font-weight:700; font-size:1.7rem; margin:0; flex:1;}
+
+  .grid-layout{display:grid; grid-template-columns:1fr 280px; gap:20px;}
+  @media (max-width:900px){ .grid-layout{grid-template-columns:1fr;} }
+
+  .card{
+    background:#fff; border:2px solid var(--line); border-radius:18px; padding:18px 20px; margin-bottom:18px;
+  }
+  .card h3{
+    font-family:'Cormorant Garamond',serif; font-size:1.25rem; margin:0 0 12px; color:var(--berry);
+    display:flex; align-items:center; gap:6px;
+  }
+
+  input[type=text], textarea{
+    width:100%; border:2px solid var(--line); border-radius:10px; padding:9px 12px;
+    font-family:'Nunito Sans',sans-serif; font-size:.92rem; color:var(--ink); background:var(--cream);
+  }
+  textarea{resize:vertical; min-height:64px;}
+  .mit-row{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .mit-num{
+    width:22px; height:22px; border-radius:50%; background:var(--gold); color:#fff; font-weight:800;
+    display:flex; align-items:center; justify-content:center; font-size:.75rem; flex-shrink:0;
+  }
+
+  /* Mini energy graph */
+  .mini-graph-wrap{display:flex; align-items:flex-end; gap:4px;}
+  svg.mini-energy{width:100%; height:90px;}
+
+  /* Time grid - Google Calendar style */
+  .time-grid{display:flex; flex-direction:column;}
+  .time-slot{
+    display:grid; grid-template-columns:54px 1fr; align-items:stretch;
+    border-bottom:1px solid var(--line); min-height:50px;
+  }
+  .time-slot:first-child{border-top:1px solid var(--line);}
+  .time-label{
+    font-family:'Nunito',sans-serif; font-size:.68rem; font-weight:700; color:var(--ink3);
+    padding:14px 8px 0 0; text-align:right;
+  }
+  .tap-grid{display:flex; flex-direction:column;}
+  .tap-slot{
+    display:grid; grid-template-columns:64px 1fr; align-items:center;
+    border-bottom:1px solid var(--line); min-height:40px; padding:4px 0;
+  }
+  .tap-slot:first-child{border-top:1px solid var(--line);}
+  .energy-taps, .mood-taps{display:flex; align-items:center; gap:8px; padding:0 6px;}
+  .etap, .mtap{
+    width:24px; height:24px; border-radius:50%; border:2px solid var(--line); background:#fff;
+    cursor:pointer; font-size:.7rem; font-weight:700; color:var(--ink3); transition:all .12s;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .etap:hover, .mtap:hover{transform:scale(1.15);}
+  .etap.e1.on{background:var(--e1); border-color:var(--e1); color:#fff;}
+  .etap.e2.on{background:var(--e2); border-color:var(--e2); color:#fff;}
+  .etap.e3.on{background:var(--e3); border-color:var(--e3); color:#fff;}
+  .etap.e4.on{background:var(--e4); border-color:var(--e4); color:#fff;}
+  .etap.e5.on{background:var(--e5); border-color:var(--e5); color:#fff;}
+  .mtap.m1.on{background:var(--m1); border-color:var(--m1); color:#fff;}
+  .mtap.m2.on{background:var(--m2); border-color:var(--m2); color:#fff;}
+  .mtap.m3.on{background:var(--m3); border-color:var(--m3); color:#fff;}
+  .mtap.m4.on{background:var(--m4); border-color:var(--m4); color:#fff;}
+  .mtap.m5.on{background:var(--m5); border-color:var(--m5); color:#fff;}
+  .taps-head{font-size:.64rem; font-weight:700; color:var(--ink3); text-align:center; text-transform:uppercase; letter-spacing:.03em;}
+  .time-block{
+    border:2px solid transparent; border-radius:10px; margin:4px 0 4px 8px; padding:8px 12px;
+    cursor:pointer; min-height:38px; display:flex; align-items:center; transition:all .15s;
+  }
+  .time-block:hover{background:var(--cream2); border-color:var(--crimson);}
+  .time-block.filled{cursor:default;}
+  .time-block.dragover{background:var(--cream2); border-color:var(--teal); border-style:dashed;}
+  .block-text{font-size:.88rem; font-weight:600; flex:1;}
+  .block-placeholder{font-size:.78rem; color:var(--ink3); opacity:.35; font-style:italic;}
+  .block-del{display:none; border:none; background:transparent; color:var(--ink3); cursor:pointer; font-size:.85rem;}
+  .time-block:hover .block-del, .time-block.filled .block-del{display:inline;}
+
+  /* Task bank sidebar */
+  .task-bank-item{
+    background:var(--cream2); border:2px solid var(--line); border-radius:10px; padding:8px 10px;
+    margin-bottom:8px; cursor:grab; font-size:.85rem; font-weight:600; display:flex; align-items:center; gap:8px;
+  }
+  .task-bank-item:active{cursor:grabbing;}
+  .task-bank-item span.t{flex:1;}
+  .task-bank-item.done span.t{text-decoration:line-through; opacity:.5;}
+  .chk{
+    width:18px; height:18px; border-radius:5px; border:2px solid var(--teal); background:#fff;
+    cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.7rem; color:#fff;
+  }
+  .chk.on{background:var(--teal);}
+  .block-text.done{text-decoration:line-through; opacity:.5;}
+  .add-task-row{display:flex; gap:6px; margin-top:8px;}
+  .add-task-row button, .moodlog button, .save-btn{
+    border:none; background:var(--teal); color:#fff; border-radius:10px; padding:8px 14px;
+    font-weight:700; cursor:pointer; font-family:'Nunito',sans-serif; font-size:.8rem;
+  }
+  .small-x{border:none; background:transparent; color:var(--ink3); cursor:pointer;}
+
+  .mood-row{display:flex; gap:8px; margin-top:6px;}
+  .mood-opt{
+    width:36px; height:36px; border-radius:50%; border:2px solid var(--line); background:#fff;
+    cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center;
+  }
+  .mood-opt.on{border-color:var(--berry); background:var(--cream2);}
+
+  /* History */
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:8px;}
+  .cal-day{
+    border:2px solid var(--line); border-radius:10px; min-height:62px; padding:6px; font-size:.78rem;
+    position:relative; cursor:pointer;
+  }
+  .cal-day.has-data{border-color:var(--gold); background:var(--cream2);}
+  .cal-day .flower-mark{position:absolute; bottom:4px; right:6px; font-size:.8rem;}
+  .stat-row{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;}
+  .stat-box{background:var(--cream2); border-radius:12px; padding:10px 16px; text-align:center;}
+  .stat-box .num{font-family:'Cormorant Garamond',serif; font-weight:700; font-size:1.5rem; color:var(--teal-d);}
+  .stat-box .lbl{font-size:.7rem; color:var(--ink3); font-weight:700; text-transform:uppercase;}
+
+  .insight{background:var(--cream2); border-radius:12px; padding:12px 16px; font-size:.85rem; margin-top:10px;}
+
+  textarea.braindump{min-height:90px;}
+  .hidden{display:none !important;}
+
+  .sync-bar{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .sync-status{font-size:.72rem; color:var(--ink3); font-weight:700;}
+  .sync-status.ok{color:var(--teal-d);}
+  .sync-status.err{color:var(--crimson);}
+  .iobtn{
+    border:2px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:6px 12px;
+    font-family:'Nunito',sans-serif; font-weight:700; font-size:.74rem; cursor:pointer;
+  }
+  .iobtn:hover{border-color:var(--teal);}
+</style>
+</head>
+<body>
+
+<div class="bg-flowers" id="bgFlowers"></div>
+
+<div class="wrap">
+  <nav>
+    <div class="brand"><span class="spin">🌸</span></div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="today">Today</button>
+      <button class="tab-btn" data-tab="energy">Energy</button>
+      <button class="tab-btn" data-tab="mood">Mood</button>
+      <button class="tab-btn" data-tab="history">History</button>
+      <button class="tab-btn" data-tab="trends">Trends</button>
+    </div>
+    <div class="sync-bar">
+      <span class="sync-status" id="syncStatus">—</span>
+      <button class="iobtn" id="exportBtn">⬇ Export JSON</button>
+      <button class="iobtn" id="importBtn">⬆ Import JSON</button>
+      <input type="file" id="importFile" accept="application/json" class="hidden">
+    </div>
+  </nav>
+
+  <div id="tab-today">
+    <div class="datebar">
+      <button id="prevDay">‹</button>
+      <h2 id="dateHeading"></h2>
+      <button id="nextDay">›</button>
+    </div>
+
+    <div class="grid-layout">
+      <div>
+        <div class="card">
+          <h3>🌿 Intention</h3>
+          <input type="text" id="intentionInput" placeholder="What's today about?">
+          <h3 style="margin-top:16px;">🌼 Top 3 priorities</h3>
+          <div class="mit-row"><div class="mit-num">1</div><input type="text" id="mit0" placeholder="Most important thing"></div>
+          <div class="mit-row"><div class="mit-num">2</div><input type="text" id="mit1" placeholder="Second priority"></div>
+          <div class="mit-row"><div class="mit-num">3</div><input type="text" id="mit2" placeholder="Third priority"></div>
+        </div>
+
+        <div class="card">
+          <h3>🕐 Time blocks</h3>
+          <div class="time-grid" id="timeGrid"></div>
+        </div>
+
+        <div class="card">
+          <h3>🪷 Brain dump</h3>
+          <textarea class="braindump" id="brainDump" placeholder="Anything on your mind..."></textarea>
+        </div>
+
+        <div class="card">
+          <h3>🌅 Morning reflection</h3>
+          <textarea id="morningRefl" placeholder="How are you starting today?"></textarea>
+        </div>
+        <div class="card">
+          <h3>🌙 Evening reflection</h3>
+          <textarea id="eveningRefl" placeholder="How did today go?"></textarea>
+          <div class="moodlog">
+            <h3 style="margin-top:14px;">Overall mood</h3>
+            <div class="mood-row" id="moodRow"></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h3>🧺 Task bank</h3>
+          <div id="taskBank"></div>
+          <div class="add-task-row">
+            <input type="text" id="newTaskInput" placeholder="Add a task...">
+            <button id="addTaskBtn">+</button>
+          </div>
+          <p style="font-size:.72rem;color:var(--ink3);margin-top:8px;">Drag a task onto a time block to schedule it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-energy" class="hidden">
+    <div class="card">
+      <h3>📈 Today's energy</h3>
+      <div class="mini-graph-wrap"><svg class="mini-energy" id="miniEnergySvg"></svg></div>
+    </div>
+    <div class="card">
+      <h3>🔆 Log hourly energy <span style="font-size:.7rem;color:var(--ink3);font-weight:600;">— tap a number 1–5</span></h3>
+      <div class="tap-grid" id="energyTapGrid"></div>
+    </div>
+  </div>
+
+  <div id="tab-mood" class="hidden">
+    <div class="card">
+      <h3>💜 Today's mood</h3>
+      <div class="mini-graph-wrap"><svg class="mini-energy" id="miniMoodSvg"></svg></div>
+    </div>
+    <div class="card">
+      <h3>🌙 Log hourly mood <span style="font-size:.7rem;color:var(--ink3);font-weight:600;">— tap a number 1–5</span></h3>
+      <div class="tap-grid" id="moodTapGrid"></div>
+    </div>
+  </div>
+
+  <div id="tab-history" class="hidden">
+    <div class="card">
+      <h3>📅 Calendar</h3>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+    <div class="card">
+      <h3>🌸 Week summary</h3>
+      <div class="stat-row" id="weekStats"></div>
+    </div>
+  </div>
+
+  <div id="tab-trends" class="hidden">
+    <div class="card">
+      <h3>📊 Energy trend (all logged days)</h3>
+      <svg id="trendSvg" style="width:100%; height:220px;"></svg>
+      <div class="insight" id="trendInsight"></div>
+    </div>
+    <div class="card">
+      <h3>🕓 Average energy by hour</h3>
+      <svg id="hourSvg" style="width:100%; height:180px;"></svg>
+    </div>
+    <div class="card">
+      <h3>💜 Mood trend (all logged days)</h3>
+      <svg id="trendMoodSvg" style="width:100%; height:220px;"></svg>
+      <div class="insight" id="trendMoodInsight"></div>
+    </div>
+    <div class="card">
+      <h3>🕓 Average mood by hour</h3>
+      <svg id="hourMoodSvg" style="width:100%; height:180px;"></svg>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- data (in-memory, synced via window.storage) ---------- */
+const data = {}; // { "YYYY-MM-DD": {intention, mits:[], blocks:{hour:{text,done}}, energy:{hour:val}, moodHourly:{hour:val}, morning, evening, mood, tasks:[]} }
+const HOURS = []; for(let h=5; h<=23; h++) HOURS.push(h); HOURS.push(0);
+let currentDate = new Date();
+const STORAGE_KEY = 'planner-entries';
+
+function dkey(d){ return d.toISOString().slice(0,10); }
+function fmtHour(h){
+  const ampm = h>=12 ? 'PM':'AM';
+  let hh = h%12; if(hh===0) hh=12;
+  return hh+':00 '+ampm;
+}
+function ensureDay(key){
+  if(!data[key]) data[key] = {intention:'', mits:['','',''], blocks:{}, energy:{}, moodHourly:{}, morning:'', evening:'', mood:null, tasks:[]};
+  if(!data[key].moodHourly) data[key].moodHourly = {};
+  return data[key];
+}
+
+/* ---------- persistence ---------- */
+let saveTimer = null;
+function setSyncStatus(text, cls){
+  const el = document.getElementById('syncStatus');
+  el.textContent = text;
+  el.className = 'sync-status' + (cls ? ' '+cls : '');
+}
+function scheduleSave(){
+  setSyncStatus('Saving…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 500);
+}
+async function doSave(){
+  try{
+    if(!window.storage){ setSyncStatus('No storage available', 'err'); return; }
+    await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
+    setSyncStatus('Saved ✓', 'ok');
+  }catch(e){
+    setSyncStatus('Save failed', 'err');
+  }
+}
+async function loadSaved(){
+  try{
+    if(!window.storage){ setSyncStatus('No storage available', 'err'); return; }
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      Object.keys(parsed).forEach(k=>{ data[k] = parsed[k]; });
+      setSyncStatus('Loaded ✓', 'ok');
+    } else {
+      setSyncStatus('No saved data yet', null);
+    }
+  }catch(e){
+    setSyncStatus('Nothing saved yet', null);
+  }
+}
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'daily-bloom-planner-'+dkey(new Date())+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const parsed = JSON.parse(ev.target.result);
+      Object.keys(parsed).forEach(k=>{ data[k] = parsed[k]; });
+      renderToday(); renderHistory();
+      scheduleSave();
+      setSyncStatus('Imported ✓', 'ok');
+    }catch(err){
+      setSyncStatus('Import failed — invalid file', 'err');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ---------- background flowers ---------- */
+const flowerEmojis = ['🌸','🌼','🌷','🌻','💐'];
+const bgEl = document.getElementById('bgFlowers');
+for(let i=0;i<18;i++){
+  const s = document.createElement('span');
+  s.textContent = flowerEmojis[i%flowerEmojis.length];
+  s.style.left = (Math.random()*100)+'vw';
+  s.style.animationDuration = (14+Math.random()*14)+'s';
+  s.style.animationDelay = (-Math.random()*20)+'s';
+  s.style.fontSize = (1+Math.random()*1.2)+'rem';
+  bgEl.appendChild(s);
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    ['today','energy','mood','history','trends'].forEach(t=>{
+      document.getElementById('tab-'+t).classList.toggle('hidden', t!==btn.dataset.tab);
+    });
+    if(btn.dataset.tab==='history') renderHistory();
+    if(btn.dataset.tab==='trends') renderTrends();
+    if(btn.dataset.tab==='energy'){ const day = ensureDay(dkey(currentDate)); renderEnergyTapGrid(day); renderMiniEnergy(day); }
+    if(btn.dataset.tab==='mood'){ const day = ensureDay(dkey(currentDate)); renderMoodTapGrid(day); renderMiniMood(day); }
+  });
+});
+
+/* ---------- date nav ---------- */
+document.getElementById('prevDay').addEventListener('click', ()=>{ currentDate.setDate(currentDate.getDate()-1); renderToday(); });
+document.getElementById('nextDay').addEventListener('click', ()=>{ currentDate.setDate(currentDate.getDate()+1); renderToday(); });
+
+/* ---------- render today ---------- */
+function renderToday(){
+  const key = dkey(currentDate);
+  const day = ensureDay(key);
+  document.getElementById('dateHeading').textContent = currentDate.toLocaleDateString('en-US',{weekday:'long', month:'long', day:'numeric'});
+
+  document.getElementById('intentionInput').value = day.intention;
+  document.getElementById('mit0').value = day.mits[0];
+  document.getElementById('mit1').value = day.mits[1];
+  document.getElementById('mit2').value = day.mits[2];
+  document.getElementById('brainDump').value = day.brain || '';
+  document.getElementById('morningRefl').value = day.morning;
+  document.getElementById('eveningRefl').value = day.evening;
+
+  // mood row
+  const moodEmojis = ['😞','😕','😐','🙂','😄'];
+  const moodRow = document.getElementById('moodRow');
+  moodRow.innerHTML = '';
+  moodEmojis.forEach((em,i)=>{
+    const b = document.createElement('button');
+    b.className = 'mood-opt' + (day.mood===i+1 ? ' on':'');
+    b.textContent = em;
+    b.addEventListener('click', ()=>{ day.mood = i+1; renderToday(); scheduleSave(); });
+    moodRow.appendChild(b);
+  });
+
+  renderTimeGrid(key, day);
+  renderTaskBank(key, day);
+  renderMiniEnergy(day);
+  renderMiniMood(day);
+
+  // bind text inputs
+  document.getElementById('intentionInput').oninput = e=>{ day.intention=e.target.value; scheduleSave(); };
+  document.getElementById('mit0').oninput = e=>{ day.mits[0]=e.target.value; scheduleSave(); };
+  document.getElementById('mit1').oninput = e=>{ day.mits[1]=e.target.value; scheduleSave(); };
+  document.getElementById('mit2').oninput = e=>{ day.mits[2]=e.target.value; scheduleSave(); };
+  document.getElementById('brainDump').oninput = e=>{ day.brain=e.target.value; scheduleSave(); };
+  document.getElementById('morningRefl').oninput = e=>{ day.morning=e.target.value; scheduleSave(); };
+  document.getElementById('eveningRefl').oninput = e=>{ day.evening=e.target.value; scheduleSave(); };
+}
+
+function renderTimeGrid(key, day){
+  const grid = document.getElementById('timeGrid');
+  grid.innerHTML = '';
+  HOURS.forEach(h=>{
+    const row = document.createElement('div');
+    row.className = 'time-slot';
+
+    const label = document.createElement('div');
+    label.className = 'time-label';
+    label.textContent = fmtHour(h);
+    row.appendChild(label);
+
+    const block = document.createElement('div');
+    block.className = 'time-block' + (day.blocks[h] ? ' filled':'');
+    block.dataset.hour = h;
+    if(day.blocks[h]){
+      const entry = day.blocks[h];
+      const chk = document.createElement('button');
+      chk.className = 'chk' + (entry.done ? ' on':'');
+      chk.textContent = entry.done ? '✓' : '';
+      chk.title = 'Mark complete';
+      chk.addEventListener('click', (e)=>{ e.stopPropagation(); entry.done = !entry.done; renderTimeGrid(key,day); scheduleSave(); });
+      block.appendChild(chk);
+      const txt = document.createElement('span');
+      txt.className = 'block-text' + (entry.done ? ' done':''); txt.textContent = entry.text;
+      block.appendChild(txt);
+      const del = document.createElement('button');
+      del.className = 'block-del'; del.textContent='✕';
+      del.addEventListener('click', (e)=>{ e.stopPropagation(); delete day.blocks[h]; renderTimeGrid(key,day); scheduleSave(); });
+      block.appendChild(del);
+    } else {
+      const ph = document.createElement('input');
+      ph.type = 'text';
+      ph.className = 'block-placeholder-input';
+      ph.placeholder = 'click & type, then Enter';
+      ph.style.cssText = 'border:none;background:transparent;font-size:.85rem;font-family:Nunito Sans,sans-serif;width:100%;color:var(--ink);outline:none;';
+      block.appendChild(ph);
+      ph.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter'){
+          e.preventDefault();
+          if(ph.value.trim()){ day.blocks[h] = {text: ph.value.trim(), done:false}; renderTimeGrid(key,day); scheduleSave(); }
+        }
+      });
+      ph.addEventListener('blur', ()=>{
+        if(ph.value.trim()){ day.blocks[h] = {text: ph.value.trim(), done:false}; renderTimeGrid(key,day); scheduleSave(); }
+      });
+    }
+    block.addEventListener('dragover', e=>{ e.preventDefault(); block.classList.add('dragover'); });
+    block.addEventListener('dragleave', ()=> block.classList.remove('dragover'));
+    block.addEventListener('drop', e=>{
+      e.preventDefault(); block.classList.remove('dragover');
+      const idx = e.dataTransfer.getData('text/plain');
+      if(idx!==''){
+        const task = day.tasks[idx];
+        if(task){ day.blocks[h] = {text: task.text, done:false}; day.tasks.splice(idx,1); renderTimeGrid(key,day); renderTaskBank(key,day); scheduleSave(); }
+      }
+    });
+    row.appendChild(block);
+    grid.appendChild(row);
+  });
+}
+
+function renderTaskBank(key, day){
+  const bank = document.getElementById('taskBank');
+  bank.innerHTML = '';
+  day.tasks.forEach((t,i)=>{
+    const item = document.createElement('div');
+    item.className = 'task-bank-item' + (t.done ? ' done':'');
+    item.draggable = true;
+    item.addEventListener('dragstart', e=> e.dataTransfer.setData('text/plain', i));
+    const chk = document.createElement('button');
+    chk.className = 'chk' + (t.done ? ' on':'');
+    chk.textContent = t.done ? '✓' : '';
+    chk.addEventListener('click', ()=>{ t.done = !t.done; renderTaskBank(key,day); scheduleSave(); });
+    const span = document.createElement('span'); span.className='t'; span.textContent = t.text;
+    const x = document.createElement('button'); x.className='small-x'; x.textContent='✕';
+    x.addEventListener('click', ()=>{ day.tasks.splice(i,1); renderTaskBank(key,day); scheduleSave(); });
+    item.appendChild(chk); item.appendChild(span); item.appendChild(x);
+    bank.appendChild(item);
+  });
+  const addFn = ()=>{
+    const input = document.getElementById('newTaskInput');
+    if(input.value.trim()){ day.tasks.push({text: input.value.trim(), done:false}); input.value=''; renderTaskBank(key,day); scheduleSave(); }
+  };
+  document.getElementById('addTaskBtn').onclick = addFn;
+  document.getElementById('newTaskInput').onkeydown = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); addFn(); } };
+}
+
+/* ---------- standalone energy & mood tap grids ---------- */
+function renderEnergyTapGrid(day){
+  const key = dkey(currentDate);
+  const grid = document.getElementById('energyTapGrid');
+  grid.innerHTML = '';
+  HOURS.forEach(h=>{
+    const row = document.createElement('div');
+    row.className = 'tap-slot';
+    const label = document.createElement('div');
+    label.className = 'time-label';
+    label.textContent = fmtHour(h);
+    row.appendChild(label);
+    const taps = document.createElement('div');
+    taps.className = 'energy-taps';
+    for(let v=1; v<=5; v++){
+      const dot = document.createElement('button');
+      dot.className = 'etap e'+v + (day.energy[h]===v ? ' on':'');
+      dot.textContent = v;
+      dot.title = 'Energy '+v;
+      dot.addEventListener('click', ()=>{
+        day.energy[h] = (day.energy[h]===v) ? null : v;
+        renderEnergyTapGrid(day);
+        renderMiniEnergy(day);
+        scheduleSave();
+      });
+      taps.appendChild(dot);
+    }
+    row.appendChild(taps);
+    grid.appendChild(row);
+  });
+}
+
+function renderMoodTapGrid(day){
+  const grid = document.getElementById('moodTapGrid');
+  grid.innerHTML = '';
+  HOURS.forEach(h=>{
+    const row = document.createElement('div');
+    row.className = 'tap-slot';
+    const label = document.createElement('div');
+    label.className = 'time-label';
+    label.textContent = fmtHour(h);
+    row.appendChild(label);
+    const taps = document.createElement('div');
+    taps.className = 'mood-taps';
+    for(let v=1; v<=5; v++){
+      const dot = document.createElement('button');
+      dot.className = 'mtap m'+v + (day.moodHourly[h]===v ? ' on':'');
+      dot.textContent = v;
+      dot.title = 'Mood '+v;
+      dot.addEventListener('click', ()=>{
+        day.moodHourly[h] = (day.moodHourly[h]===v) ? null : v;
+        renderMoodTapGrid(day);
+        renderMiniMood(day);
+        scheduleSave();
+      });
+      taps.appendChild(dot);
+    }
+    row.appendChild(taps);
+    grid.appendChild(row);
+  });
+}
+
+/* ---------- mini energy graph (today) ---------- */
+function renderMiniEnergy(day){
+  const svg = document.getElementById('miniEnergySvg');
+  const PAD = 7;
+  const w = svg.clientWidth || 600, h = 90;
+  const pts = HOURS.map(hr => ({hr, v: day.energy[hr]}));
+  const xStep = (w - PAD*2) / (HOURS.length-1);
+  const yFor = v => h - 14 - ((v-1)/4)*(h-28);
+
+  let path = '';
+  let started = false;
+  pts.forEach((p,i)=>{
+    if(p.v==null) { started=false; return; }
+    const x = PAD + i*xStep, y = yFor(p.v);
+    path += (started ? ' L' : ' M') + x.toFixed(1) + ',' + y.toFixed(1);
+    started = true;
+  });
+
+  let dots = '';
+  pts.forEach((p,i)=>{
+    if(p.v==null) return;
+    const x = PAD + i*xStep, y = yFor(p.v);
+    const colors = {1:'var(--e1)',2:'var(--e2)',3:'var(--e3)',4:'var(--e4)',5:'var(--e5)'};
+    dots += `<circle cx="${x}" cy="${y}" r="4" fill="${colors[p.v]}" />`;
+  });
+
+  svg.innerHTML = `
+    <line x1="0" y1="${h-14}" x2="${w}" y2="${h-14}" stroke="#EADFD2" stroke-width="1"/>
+    <path d="${path}" fill="none" stroke="#A8336B" stroke-width="2" />
+    ${dots}
+  `;
+}
+
+/* ---------- mini mood graph (today) ---------- */
+function renderMiniMood(day){
+  const svg = document.getElementById('miniMoodSvg');
+  const PAD = 7;
+  const w = svg.clientWidth || 600, h = 90;
+  const pts = HOURS.map(hr => ({hr, v: day.moodHourly[hr]}));
+  const xStep = (w - PAD*2) / (HOURS.length-1);
+  const yFor = v => h - 14 - ((v-1)/4)*(h-28);
+
+  let path = '';
+  let started = false;
+  pts.forEach((p,i)=>{
+    if(p.v==null) { started=false; return; }
+    const x = PAD + i*xStep, y = yFor(p.v);
+    path += (started ? ' L' : ' M') + x.toFixed(1) + ',' + y.toFixed(1);
+    started = true;
+  });
+
+  let dots = '';
+  pts.forEach((p,i)=>{
+    if(p.v==null) return;
+    const x = PAD + i*xStep, y = yFor(p.v);
+    const colors = {1:'var(--m1)',2:'var(--m2)',3:'var(--m3)',4:'var(--m4)',5:'var(--m5)'};
+    dots += `<circle cx="${x}" cy="${y}" r="4" fill="${colors[p.v]}" />`;
+  });
+
+  svg.innerHTML = `
+    <line x1="0" y1="${h-14}" x2="${w}" y2="${h-14}" stroke="#EADFD2" stroke-width="1"/>
+    <path d="${path}" fill="none" stroke="#7A4C8C" stroke-width="2" />
+    ${dots}
+  `;
+}
+
+/* ---------- history ---------- */
+function renderHistory(){
+  const calGrid = document.getElementById('calGrid');
+  calGrid.innerHTML = '';
+  const year = currentDate.getFullYear(), month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  for(let i=0;i<startOffset;i++){ calGrid.appendChild(document.createElement('div')); }
+  for(let d=1; d<=daysInMonth; d++){
+    const dt = new Date(year, month, d);
+    const key = dkey(dt);
+    const cell = document.createElement('div');
+    cell.className = 'cal-day' + (data[key] ? ' has-data':'');
+    cell.innerHTML = '<span>'+d+'</span>' + (data[key] ? '<span class="flower-mark">🌸</span>':'');
+    cell.addEventListener('click', ()=>{ currentDate = dt; document.querySelector('[data-tab="today"]').click(); });
+    calGrid.appendChild(cell);
+  }
+
+  // week stats: last 7 days ending today
+  const stats = document.getElementById('weekStats');
+  let loggedDays=0, totalEnergyPts=0, sumEnergy=0, totalTasks=0, moodSum=0, moodCount=0;
+  for(let i=0;i<7;i++){
+    const dt = new Date(); dt.setDate(dt.getDate()-i);
+    const day = data[dkey(dt)];
+    if(day){
+      loggedDays++;
+      Object.values(day.energy||{}).forEach(v=>{ if(v){ totalEnergyPts++; sumEnergy+=v; } });
+      totalTasks += Object.keys(day.blocks||{}).length;
+      if(day.mood){ moodSum+=day.mood; moodCount++; }
+    }
+  }
+  stats.innerHTML = `
+    <div class="stat-box"><div class="num">${loggedDays}</div><div class="lbl">Days logged</div></div>
+    <div class="stat-box"><div class="num">${totalEnergyPts? (sumEnergy/totalEnergyPts).toFixed(1):'–'}</div><div class="lbl">Avg energy</div></div>
+    <div class="stat-box"><div class="num">${totalTasks}</div><div class="lbl">Blocks filled</div></div>
+    <div class="stat-box"><div class="num">${moodCount? (moodSum/moodCount).toFixed(1):'–'}</div><div class="lbl">Avg mood</div></div>
+  `;
+}
+
+/* ---------- trends ---------- */
+function renderDayTrendLine(svgId, insightId, field, lineColor, label, noun){
+  const keys = Object.keys(data).sort();
+  const svg = document.getElementById(svgId);
+  const w = svg.clientWidth || 800, h = 220;
+  if(keys.length===0){
+    svg.innerHTML = `<text x="20" y="40" fill="#9C8A85" font-size="13">No ${noun} data logged yet — tap some dots on Today's time grid.</text>`;
+    document.getElementById(insightId).textContent = '';
+    return;
+  }
+  const avgs = keys.map(k=>{
+    const vals = Object.values(data[k][field]||{}).filter(v=>v!=null);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+  });
+  const validIdx = avgs.map((v,i)=>v!=null?i:null).filter(i=>i!=null);
+  const PAD = 8;
+  const xStep = validIdx.length>1 ? (w-PAD*2)/(validIdx.length-1) : 0;
+  const yFor = v => h-30 - ((v-1)/4)*(h-60);
+  let path=''; let dots='';
+  validIdx.forEach((idx,pos)=>{
+    const x = PAD + pos*xStep, y = yFor(avgs[idx]);
+    path += (pos===0?'M':'L') + x.toFixed(1)+','+y.toFixed(1);
+    dots += `<circle cx="${x}" cy="${y}" r="4" fill="${lineColor}"/>`;
+  });
+  svg.innerHTML = `
+    <line x1="0" y1="${h-30}" x2="${w}" y2="${h-30}" stroke="#EADFD2"/>
+    <path d="${path}" fill="none" stroke="${lineColor}" stroke-width="2.5"/>
+    ${dots}
+  `;
+  const overall = avgs.filter(v=>v!=null);
+  const trendAvg = (overall.reduce((a,b)=>a+b,0)/overall.length).toFixed(1);
+  let insightText = `Across ${overall.length} logged day(s), your average daily ${label} is ${trendAvg} / 5.`;
+
+  const hourSums = {}, hourCounts = {};
+  HOURS.forEach(hr=>{ hourSums[hr]=0; hourCounts[hr]=0; });
+  keys.forEach(k=>{
+    Object.entries(data[k][field]||{}).forEach(([hr,v])=>{
+      if(v!=null){ hourSums[hr]+=v; hourCounts[hr]++; }
+    });
+  });
+  let bestHour=null, bestVal=-1;
+  HOURS.forEach(hr=>{
+    const avg = hourCounts[hr] ? hourSums[hr]/hourCounts[hr] : 0;
+    if(avg>bestVal && hourCounts[hr]){ bestVal=avg; bestHour=hr; }
+  });
+  if(bestHour!=null){
+    insightText += ` Your highest-${label} hour tends to be around ${fmtHour(bestHour)}.`;
+  }
+  document.getElementById(insightId).textContent = insightText;
+  return {hourSums, hourCounts};
+}
+
+function renderHourBar(svgId, hourSums, hourCounts, barColor){
+  const hourSvg = document.getElementById(svgId);
+  const hw = hourSvg.clientWidth || 800, hh = 180;
+  const barW = hw/HOURS.length;
+  let bars='';
+  HOURS.forEach((hr,i)=>{
+    const avg = (hourCounts && hourCounts[hr]) ? hourSums[hr]/hourCounts[hr] : 0;
+    const barH = (avg/5)*(hh-30);
+    bars += `<rect x="${i*barW+3}" y="${hh-20-barH}" width="${barW-6}" height="${barH}" fill="${barColor}" rx="3"/>`;
+  });
+  hourSvg.innerHTML = bars + `<line x1="0" y1="${hh-20}" x2="${hw}" y2="${hh-20}" stroke="#EADFD2"/>`;
+}
+
+function renderTrends(){
+  const energyStats = renderDayTrendLine('trendSvg','trendInsight','energy','#2F8C82','energy','energy');
+  renderHourBar('hourSvg', energyStats && energyStats.hourSums, energyStats && energyStats.hourCounts, '#A8336B');
+
+  const moodStats = renderDayTrendLine('trendMoodSvg','trendMoodInsight','moodHourly','#7A4C8C','mood','mood');
+  renderHourBar('hourMoodSvg', moodStats && moodStats.hourSums, moodStats && moodStats.hourCounts, '#7A4C8C');
+}
+
+loadSaved().then(()=>{ renderToday(); });
+</script>
+</body>
+</html>
