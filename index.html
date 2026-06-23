@@ -337,7 +337,10 @@ function ensureDay(key){
   return data[key];
 }
 
-/* ---------- persistence ---------- */
+/* ---------- persistence ----------
+   Uses window.storage when this runs inside Claude's artifact preview,
+   and falls back to the browser's own localStorage when opened as a
+   standalone file (which is what happens once you download & open it). */
 let saveTimer = null;
 function setSyncStatus(text, cls){
   const el = document.getElementById('syncStatus');
@@ -351,8 +354,11 @@ function scheduleSave(){
 }
 async function doSave(){
   try{
-    if(!window.storage){ setSyncStatus('No storage available', 'err'); return; }
-    await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
+    if(window.storage){
+      await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
     setSyncStatus('Saved ✓', 'ok');
   }catch(e){
     setSyncStatus('Save failed', 'err');
@@ -360,10 +366,15 @@ async function doSave(){
 }
 async function loadSaved(){
   try{
-    if(!window.storage){ setSyncStatus('No storage available', 'err'); return; }
-    const res = await window.storage.get(STORAGE_KEY, false);
-    if(res && res.value){
-      const parsed = JSON.parse(res.value);
+    let raw = null;
+    if(window.storage){
+      const res = await window.storage.get(STORAGE_KEY, false);
+      raw = res && res.value;
+    } else {
+      raw = localStorage.getItem(STORAGE_KEY);
+    }
+    if(raw){
+      const parsed = JSON.parse(raw);
       Object.keys(parsed).forEach(k=>{ data[k] = parsed[k]; });
       setSyncStatus('Loaded ✓', 'ok');
     } else {
