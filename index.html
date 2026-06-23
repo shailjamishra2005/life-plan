@@ -339,31 +339,55 @@ function ensureDay(key){
 
 /* ---------- persistence ----------
    Uses window.storage when this runs inside Claude's artifact preview,
-   and falls back to the browser's own localStorage when opened as a
-   standalone file (which is what happens once you download & open it). */
+   and falls back to the browser's own localStorage when hosted/opened
+   as a regular page (e.g. GitHub Pages). localStorage writes are
+   synchronous, so they save instantly — important because closing or
+   switching a tab can interrupt anything still waiting on a delay. */
 let saveTimer = null;
 function setSyncStatus(text, cls){
   const el = document.getElementById('syncStatus');
   el.textContent = text;
   el.className = 'sync-status' + (cls ? ' '+cls : '');
 }
+function saveLocalSync(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    setSyncStatus('Saved ✓', 'ok');
+    return true;
+  }catch(e){
+    setSyncStatus('Save failed', 'err');
+    return false;
+  }
+}
 function scheduleSave(){
-  setSyncStatus('Saving…');
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(doSave, 500);
+  if(window.storage){
+    setSyncStatus('Saving…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(doSave, 500);
+  } else {
+    // No artifact storage available — save to localStorage right away,
+    // no debounce, so a quick tab switch/close can't lose the change.
+    saveLocalSync();
+  }
 }
 async function doSave(){
   try{
-    if(window.storage){
-      await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
+    await window.storage.set(STORAGE_KEY, JSON.stringify(data), false);
     setSyncStatus('Saved ✓', 'ok');
   }catch(e){
     setSyncStatus('Save failed', 'err');
   }
 }
+// Force a save the instant the tab is hidden, backgrounded, or closed,
+// so nothing waiting on the debounce above gets lost.
+function flushSave(){
+  clearTimeout(saveTimer);
+  if(!window.storage) saveLocalSync();
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') flushSave(); });
+window.addEventListener('pagehide', flushSave);
+window.addEventListener('beforeunload', flushSave);
+
 async function loadSaved(){
   try{
     let raw = null;
